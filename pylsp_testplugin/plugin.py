@@ -2,7 +2,7 @@ import os
 import logging
 
 from pylsp import hookimpl, lsp
-from .parseImport import get_imports
+from .parseimport import get_imports
 
 
 # Setting up basic configuration, logging everything that has an ERROR level 
