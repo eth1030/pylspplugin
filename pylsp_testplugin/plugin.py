@@ -67,7 +67,7 @@ def format_text(import_cases, diagnostics):
                 'end': {'line': import_cases[x][3] - 1, 'character': import_cases[x][5]},
             }
             diagnostics.append({
-                'source': 'ParseImport',
+                'source': 'emika',
                 'range': err_range,
                 'message': "You have imported " + import_cases[x][1][0] + " here.",
                 'severity': lsp.DiagnosticSeverity.Information,
