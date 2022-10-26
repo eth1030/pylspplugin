@@ -1,8 +1,10 @@
 import os
 import logging
+import ast
+
 
 from pylsp import hookimpl, lsp
-from .parseimport import get_imports
+from .detect import ASTWalker
 
 
 # Setting up basic configuration, logging everything that has an ERROR level 
@@ -32,9 +34,8 @@ def pylsp_settings():
 # Find this corresponding hook in documentation
 @hookimpl
 def pylsp_lint(config, document):
-
     # Define vaiables here
-    diagnostics = []
+    funcdiagnostics = []
 
     # Set up settings and search paths (Using OS)
     settings = config.plugin_settings('pylsPlugins',
@@ -45,35 +46,59 @@ def pylsp_lint(config, document):
     # try-except to catch any expections that rises
     try:
         with open(document.path, 'r') as code: #opens the current code in the backend for parsing
-            importCases = get_imports(code)
-            diagnostics = format_text(importCases, [])
+            tree = ast.parse(code)
+            ast_walker = ASTWalker()
+            ast_walker.visit(tree)
+            importFunctions = ast_walker.candidates
+            funcdiagnostics = format_sql(importFunctions, [])
     except SyntaxError as e:
         logger.error('Syntax error at {} - {} ({})', e.line, e.column, e.message)
         raise e
-    
-    return diagnostics
+    return funcdiagnostics
 
-def format_text(import_cases, diagnostics):
+def format_sql(importFunctions, funcdiagnostics):
     """
     Formatting the error messages that comes up this is what is returned.
     Requires the parseImport parser to return the line number of the import line
     and character
     """
 
-    if import_cases:
-        for x in range(len(import_cases)):
+    if importFunctions:
+        for x in range(len(importFunctions)):
             err_range = {
-                'start': {'line': import_cases[x][3] - 1, 'character': import_cases[x][4]},
-                'end': {'line': import_cases[x][3] - 1, 'character': import_cases[x][5]},
+                'start': {'line': importFunctions[x][2] - 1, 'character': importFunctions[x][3]},
+                'end': {'line': importFunctions[x][2] - 1, 'character': importFunctions[x][4]},
             }
-            diagnostics.append({
-                'source': 'emika',
+            funcdiagnostics.append({
+                'source': 'RTQA',
                 'range': err_range,
-                'message': "You have imported " + import_cases[x][1][0] + " here.",
+                'message': "You have used the sql function" + importFunctions[x][1] + " here.",
                 'severity': lsp.DiagnosticSeverity.Information,
             })
 
-    return diagnostics
+    return funcdiagnostics
+
+# def format_text(import_cases, diagnostics):
+#     """
+#     Formatting the error messages that comes up this is what is returned.
+#     Requires the parseImport parser to return the line number of the import line
+#     and character
+#     """
+
+#     if import_cases:
+#         for x in range(len(import_cases)):
+#             err_range = {
+#                 'start': {'line': import_cases[x][3] - 1, 'character': import_cases[x][4]},
+#                 'end': {'line': import_cases[x][3] - 1, 'character': import_cases[x][5]},
+#             }
+#             diagnostics.append({
+#                 'source': 'RTQA',
+#                 'range': err_range,
+#                 'message': "You have imported " + import_cases[x][1][0] + " here.",
+#                 'severity': lsp.DiagnosticSeverity.Information,
+#             })
+
+#     return diagnostics
 
 # import logging
 

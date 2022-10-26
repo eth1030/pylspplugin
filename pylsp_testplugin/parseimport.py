@@ -14,6 +14,7 @@ def get_imports(path):
     in the current code cell (put in to the function through the plugin)
     """
     results = []
+    # funcresults = []
     root = ast.parse(path.read())
 
     for node in ast.iter_child_nodes(root):
@@ -22,6 +23,8 @@ def get_imports(path):
             module = []
         elif isinstance(node, ast.ImportFrom):  
             module = node.module.split('.')
+        # elif isinstance(node,ast.Expr):
+        #     fun = []
         else:
             continue
         
@@ -31,5 +34,8 @@ def get_imports(path):
         
         for n in node.names:
             results.append([module, n.name.split('.'), n.asname, lineno, col_offset, end_col_offset])
+        # for n in node.value:
+        #     funcresults.append([fun,n.func.attr, lineno,col_offset,end_col_offset])
 
-    return results 
+    return results
+    # , funcresults
