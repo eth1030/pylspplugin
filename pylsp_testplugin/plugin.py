@@ -1,17 +1,20 @@
 import os
 import logging
 import ast
+import sys
 
 
 from pylsp import hookimpl, lsp
 from .detect import ASTWalker
+from .parseimport import get_imports
 
 
 # Setting up basic configuration, logging everything that has an ERROR level 
 # Also found out through debugging that the logger that is defined here is NOT logger that prints
 # to terminal when you run Jupyter Lab
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 # Hookimpl is from pylsp, do not touch this. Setting helps with making sure PyLsp adds this extension.
 # The pylsp hooks corresponds to Language Server Protocol messages
@@ -31,6 +34,79 @@ def pylsp_settings():
         }
     }
 
+# # Find this corresponding hook in documentation
+# @hookimpl
+# def pylsp_lint(config, document):
+
+#     # Define vaiables here
+#     diagnostics = []
+
+#     # Set up settings and search paths (Using OS)
+#     settings = config.plugin_settings('pylsPlugins',
+#                                       document_path=document.path)
+#     search_paths = [os.path.dirname(os.path.abspath(document.path))]
+#     search_paths.extend(settings.get('additional_search_paths'))
+
+#     # try-except to catch any expections that rises
+#     try:
+#         with open(document.path, 'r') as code: #opens the current code in the backend for parsing
+#             # tree = ast.parse(code.read())
+#             # logger.info('parse runs')
+#             # ast_walker = ASTWalker()
+#             # ast_walker.visit(tree)
+#             importCases = get_imports(code)
+#             diagnostics = format_text(importCases, [])
+#             # logger.info("Hello: %s", code)
+           
+            
+            
+            
+#     except SyntaxError as e:
+#         logger.error('Syntax error at {} - {} ({})', e.line, e.column, e.message)
+#         raise e
+    
+#     return diagnostics
+
+# @hookimpl
+# def pylsp_code_actions(config, workspace, document, range, context):
+#     logger.info("textDocument/codeAction: %s %s %s", document, range, context)
+
+#     return [
+#         {
+#             "title": "Extract method",
+#             "kind": "refactor.extract",
+#             "command": {
+#                 "command": "example.refactor.extract",
+#                 "arguments": [document.uri, range],
+#             },
+#         },
+#     ]
+
+
+# def format_text(import_cases, diagnostics):
+#     """
+#     Formatting the error messages that comes up this is what is returned.
+#     Requires the parseImport parser to return the line number of the import line
+#     and character
+#     """
+
+#     if import_cases:
+#         for x in range(len(import_cases)):
+#             err_range = {
+#                 'start': {'line': import_cases[x][3] - 1, 'character': import_cases[x][4]},
+#                 'end': {'line': import_cases[x][3] - 1, 'character': import_cases[x][5]},
+#             }
+#             diagnostics.append({
+#                 'source': 'ParseImport',
+#                 'range': err_range,
+#                 'message': "You have imported " + import_cases[x][1][0] + " here.",
+#                 'severity': lsp.DiagnosticSeverity.Information,
+#             })
+
+#     return diagnostics
+
+
+
 # Find this corresponding hook in documentation
 @hookimpl
 def pylsp_lint(config, document):
@@ -46,7 +122,7 @@ def pylsp_lint(config, document):
     # try-except to catch any expections that rises
     try:
         with open(document.path, 'r') as code: #opens the current code in the backend for parsing
-            tree = ast.parse(code)
+            tree = ast.parse(code.read())
             ast_walker = ASTWalker()
             ast_walker.visit(tree)
             importFunctions = ast_walker.candidates
@@ -66,39 +142,47 @@ def format_sql(importFunctions, funcdiagnostics):
     if importFunctions:
         for x in range(len(importFunctions)):
             err_range = {
-                'start': {'line': importFunctions[x][2] - 1, 'character': importFunctions[x][3]},
-                'end': {'line': importFunctions[x][2] - 1, 'character': importFunctions[x][4]},
+                'start': {'line': importFunctions[x][1] - 1, 'character': importFunctions[x][2]},
+                'end': {'line': importFunctions[x][1] - 1, 'character': importFunctions[x][3]},
             }
             funcdiagnostics.append({
                 'source': 'RTQA',
                 'range': err_range,
-                'message': "You have used the sql function" + importFunctions[x][1] + " here.",
+                'message': "Vulnerable - You have used the sql function " + importFunctions[x][0] + " here.",
                 'severity': lsp.DiagnosticSeverity.Information,
             })
 
     return funcdiagnostics
 
-# def format_text(import_cases, diagnostics):
+'''
+Using line # with sql injection example
+Known execute on line 12, 0, 59
+'''
+# def format_sql(importFunctions, funcdiagnostics):
 #     """
 #     Formatting the error messages that comes up this is what is returned.
 #     Requires the parseImport parser to return the line number of the import line
 #     and character
 #     """
+#     err_range = {
+#         'start': {'line': 12-1, 'character': 0},
+#         'end': {'line': 12-1, 'character': 59},
+#     }
+#     funcdiagnostics.append({
+#         'source': 'RTQA',
+#         'range': err_range,
+#         'message': "You have used the sql function" + " execute" + " here.",
+#         'severity': lsp.DiagnosticSeverity.Information,
+#     })
 
-#     if import_cases:
-#         for x in range(len(import_cases)):
-#             err_range = {
-#                 'start': {'line': import_cases[x][3] - 1, 'character': import_cases[x][4]},
-#                 'end': {'line': import_cases[x][3] - 1, 'character': import_cases[x][5]},
-#             }
-#             diagnostics.append({
-#                 'source': 'RTQA',
-#                 'range': err_range,
-#                 'message': "You have imported " + import_cases[x][1][0] + " here.",
-#                 'severity': lsp.DiagnosticSeverity.Information,
-#             })
+#     return funcdiagnostics
 
-#     return diagnostics
+
+
+
+'''
+Previous comments
+'''
 
 # import logging
 

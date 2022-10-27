@@ -7,6 +7,12 @@ import ast
 # Definition 
 # Import = namedtuple("Imports", ["module", "name", "alias", "lineno", "col_offset", "end_col_offset"])
 
+
+SQL_FUNCTIONS = {
+    'execute',
+    'executemany',
+}
+
 # Function 
 def get_imports(path):
     """ 
@@ -19,10 +25,10 @@ def get_imports(path):
 
     for node in ast.iter_child_nodes(root):
         
-        if isinstance(node, ast.Import):
+        if isinstance(node, ast.Attribute) and node.func.attr in SQL_FUNCTIONS:
             module = []
-        elif isinstance(node, ast.ImportFrom):  
-            module = node.module.split('.')
+        # elif isinstance(node, ast.ImportFrom):  
+        #     module = node.module.split('.')
         # elif isinstance(node,ast.Expr):
         #     fun = []
         else:
