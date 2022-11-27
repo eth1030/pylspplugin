@@ -1,8 +1,6 @@
 import os
 import logging
 import ast
-import sys
-
 
 from pylsp import hookimpl, lsp
 from .detect import ASTWalker
@@ -20,6 +18,7 @@ logger = logging.getLogger(__name__)
 # The pylsp hooks corresponds to Language Server Protocol messages
 # can be found https://microsoft.github.io/language-server-protocol/specification
 # https://github.com/python-lsp/python-lsp-server/blob/develop/pylsp/hookspecs.py
+# This must be uncommented
 @hookimpl
 def pylsp_settings():
     return {
@@ -33,6 +32,12 @@ def pylsp_settings():
             }
         }
     }
+
+# Uncomment desired plugin to run either sql or module detection
+
+'''
+Detects imported modules
+'''
 
 # # Find this corresponding hook in documentation
 # @hookimpl
@@ -50,38 +55,15 @@ def pylsp_settings():
 #     # try-except to catch any expections that rises
 #     try:
 #         with open(document.path, 'r') as code: #opens the current code in the backend for parsing
-#             # tree = ast.parse(code.read())
-#             # logger.info('parse runs')
-#             # ast_walker = ASTWalker()
-#             # ast_walker.visit(tree)
 #             importCases = get_imports(code)
 #             diagnostics = format_text(importCases, [])
-#             # logger.info("Hello: %s", code)
-           
-            
-            
+#             # logger.error(f'{importCases} code from two code cells?')            
             
 #     except SyntaxError as e:
 #         logger.error('Syntax error at {} - {} ({})', e.line, e.column, e.message)
 #         raise e
     
 #     return diagnostics
-
-# @hookimpl
-# def pylsp_code_actions(config, workspace, document, range, context):
-#     logger.info("textDocument/codeAction: %s %s %s", document, range, context)
-
-#     return [
-#         {
-#             "title": "Extract method",
-#             "kind": "refactor.extract",
-#             "command": {
-#                 "command": "example.refactor.extract",
-#                 "arguments": [document.uri, range],
-#             },
-#         },
-#     ]
-
 
 # def format_text(import_cases, diagnostics):
 #     """
@@ -107,6 +89,10 @@ def pylsp_settings():
 
 
 
+'''
+Detects sql commands in notebook through functions defined in detect.py
+'''
+
 # Find this corresponding hook in documentation
 @hookimpl
 def pylsp_lint(config, document):
@@ -126,11 +112,13 @@ def pylsp_lint(config, document):
             ast_walker = ASTWalker()
             ast_walker.visit(tree)
             importFunctions = ast_walker.candidates
+            logger.error(f'{importFunctions} sql commands found')
             funcdiagnostics = format_sql(importFunctions, [])
     except SyntaxError as e:
         logger.error('Syntax error at {} - {} ({})', e.line, e.column, e.message)
         raise e
     return funcdiagnostics
+
 
 def format_sql(importFunctions, funcdiagnostics):
     """
@@ -149,39 +137,15 @@ def format_sql(importFunctions, funcdiagnostics):
                 'source': 'RTQA',
                 'range': err_range,
                 'message': "Vulnerable - You have used the sql function " + importFunctions[x][0] + " here.",
-                'severity': lsp.DiagnosticSeverity.Information,
+                'severity': lsp.DiagnosticSeverity.Error,
             })
 
     return funcdiagnostics
 
-'''
-Using line # with sql injection example
-Known execute on line 12, 0, 59
-'''
-# def format_sql(importFunctions, funcdiagnostics):
-#     """
-#     Formatting the error messages that comes up this is what is returned.
-#     Requires the parseImport parser to return the line number of the import line
-#     and character
-#     """
-#     err_range = {
-#         'start': {'line': 12-1, 'character': 0},
-#         'end': {'line': 12-1, 'character': 59},
-#     }
-#     funcdiagnostics.append({
-#         'source': 'RTQA',
-#         'range': err_range,
-#         'message': "You have used the sql function" + " execute" + " here.",
-#         'severity': lsp.DiagnosticSeverity.Information,
-#     })
-
-#     return funcdiagnostics
-
-
 
 
 '''
-Previous comments
+Previous Comments
 '''
 
 # import logging
